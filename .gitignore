@@ -1,0 +1,6 @@
+.idea
+
+src/profile
+src/projects/*
+src/vendor
+src/.env
