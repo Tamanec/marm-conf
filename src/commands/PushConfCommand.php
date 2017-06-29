@@ -4,10 +4,7 @@ namespace mc\commands;
 
 
 use mc\models\LocalConfStorage;
-use mc\models\LocalConfStorageFactory;
-use mc\models\RemoteConfStorageFactory;
-use MongoDB\BSON\ObjectID;
-use MongoDB\Client;
+use mc\models\RemoteConfStorage;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -16,30 +13,23 @@ use Symfony\Component\Console\Output\OutputInterface;
 class PushConfCommand extends Command {
 
     /**
-     * @var LocalConfStorageFactory
+     * @var LocalConfStorage
      */
-    private $localStorageFactory;
+    private $localStorage;
 
     /**
-     * @var RemoteConfStorageFactory
+     * @var RemoteConfStorage
      */
-    private $remoteStorageFactory;
-
-    /**
-     * @var string
-     */
-    private $path;
+    private $remoteStorage;
 
     /**
      * PullConfCommand constructor.
-     * @param LocalConfStorageFactory $localStorageFactory
-     * @param RemoteConfStorageFactory $remoteStorageFactory
-     * @param string $path
+     * @param LocalConfStorage $localStorage
+     * @param RemoteConfStorage $remoteStorage
      */
-    public function __construct(LocalConfStorageFactory $localStorageFactory, RemoteConfStorageFactory $remoteStorageFactory, string $path) {
-        $this->localStorageFactory = $localStorageFactory;
-        $this->remoteStorageFactory = $remoteStorageFactory;
-        $this->path = $path;
+    public function __construct(LocalConfStorage $localStorage, RemoteConfStorage $remoteStorage) {
+        $this->localStorage = $localStorage;
+        $this->remoteStorage = $remoteStorage;
         parent::__construct();
     }
 
@@ -51,7 +41,7 @@ class PushConfCommand extends Command {
             ->setHelp("Переносит конфигурацию из ФС в БД. Для удаления данных в БД необходимо указать указать аргумент delete=true.\nПример:\nphp index.php mc:pull-conf nadzor v1d1")
             ->addArgument("project", InputArgument::REQUIRED, "Project name (token)")
             ->addArgument("version", InputArgument::REQUIRED, "Configuration version")
-            ->addArgument("delete", InputArgument::OPTIONAL, "Delete data from DB")
+            ->addArgument("delete", InputArgument::OPTIONAL, "Drop db before push")
         ;
     }
 
@@ -70,19 +60,22 @@ class PushConfCommand extends Command {
         }
 
         $confVersion = $matches[2];
-        $remoteStorage = $this->remoteStorageFactory->create($project, $confVersion);
+        $this->remoteStorage
+            ->setProject($project)
+            ->setConfVersion($confVersion)
+        ;
         if ($delete) {
-            $remoteStorage->drop();
+            $this->remoteStorage->drop();
         }
 
-        $localStorage = $this->localStorageFactory->create($project, $this->path);
-        foreach ($localStorage->getCollections() as $collectionName) {
-            $iterator = $localStorage->getCollectionData($collectionName);
+        $this->localStorage->setProject($project);
+        foreach ($this->localStorage->getCollections() as $collectionName) {
+            $iterator = $this->localStorage->getCollectionData($collectionName);
             foreach ($iterator as $data) {
-                $remoteStorage->save($data, $collectionName);
+                $this->remoteStorage->save($data, $collectionName);
             }
 
-            $remoteStorage->flush($collectionName);
+            $this->remoteStorage->flush($collectionName);
         }
     }
 

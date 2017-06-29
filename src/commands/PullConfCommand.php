@@ -3,8 +3,8 @@
 namespace mc\commands;
 
 
-use mc\models\LocalConfStorageFactory;
-use mc\models\RemoteConfStorageFactory;
+use mc\models\LocalConfStorage;
+use mc\models\RemoteConfStorage;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -20,30 +20,23 @@ class PullConfCommand extends Command {
     ];
 
     /**
-     * @var LocalConfStorageFactory
+     * @var LocalConfStorage
      */
-    private $localStorageFactory;
+    private $localStorage;
 
     /**
-     * @var RemoteConfStorageFactory
+     * @var RemoteConfStorage
      */
-    private $remoteStorageFactory;
-
-    /**
-     * @var string
-     */
-    private $path;
+    private $remoteStorage;
 
     /**
      * PullConfCommand constructor.
-     * @param LocalConfStorageFactory $localStorageFactory
-     * @param RemoteConfStorageFactory $remoteStorageFactory
-     * @param string $path
+     * @param LocalConfStorage $localStorage
+     * @param RemoteConfStorage $remoteStorage
      */
-    public function __construct(LocalConfStorageFactory $localStorageFactory, RemoteConfStorageFactory $remoteStorageFactory, string $path) {
-        $this->localStorageFactory = $localStorageFactory;
-        $this->remoteStorageFactory = $remoteStorageFactory;
-        $this->path = $path;
+    public function __construct(LocalConfStorage $localStorage, RemoteConfStorage $remoteStorage) {
+        $this->localStorage = $localStorage;
+        $this->remoteStorage = $remoteStorage;
         parent::__construct();
     }
 
@@ -71,19 +64,22 @@ class PullConfCommand extends Command {
             throw new \Exception("Incorrect format of version: {$version}");
         }
 
-        $localStorage = $this->localStorageFactory->create($project, $this->path);
-        $localStorage->initProject();
+        $this->localStorage->setProject($project);
+        $this->localStorage->initProject();
 
         $confVersion = $matches[2];
-        $remoteStorage = $this->remoteStorageFactory->create($project, $confVersion);
-        foreach ($remoteStorage->getCollections() as $collectionName) {
+        $this->remoteStorage
+            ->setProject($project)
+            ->setConfVersion($confVersion)
+        ;
+        foreach ($this->remoteStorage->getCollections() as $collectionName) {
             if (in_array($collectionName, $this->ignoreCollections)) {
                 continue;
             }
 
-            $localStorage->initCollection($collectionName);
-            foreach ($remoteStorage->getCollectionData($collectionName) as $data) {
-                $localStorage->save($data, $collectionName);
+            $this->localStorage->initCollection($collectionName);
+            foreach ($this->remoteStorage->getCollectionData($collectionName) as $data) {
+                $this->localStorage->save($data, $collectionName);
             }
         }
     }

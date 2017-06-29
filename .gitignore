@@ -2,5 +2,6 @@
 
 src/profile
 src/projects/*
+!src/projects/.empty
 src/vendor
 src/.env

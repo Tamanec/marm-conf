@@ -17,9 +17,19 @@ class RemoteConfStorage {
     const BUFFER__MAX_SIZE = 1000;
 
     /**
-     * @var Database
+     * @var string
      */
-    private $db;
+    private $project;
+
+    /**
+     * @var int
+     */
+    private $confVersion;
+    
+    /**
+     * @var Client
+     */
+    private $client;
 
     /**
      * @var array[]
@@ -28,19 +38,17 @@ class RemoteConfStorage {
 
     /**
      * Configuration constructor.
-     * @param string $project
-     * @param int $confVersion
+     * @param Client $client
      */
-    public function __construct(string $project, int $confVersion) {
-        $dbName = "{$project}_{$confVersion}";
-        $this->db = (new Client("mongodb://{$_ENV['MONGO_USER']}:{$_ENV['MONGO_PASSWORD']}@{$_ENV['MONGO_SERVER']}/admin"))->{$dbName};
+    public function __construct(Client $client) {
+        $this->client = $client;
     }
 
     /**
      * @return \Generator|string[] Collection names
      */
     public function getCollections() {
-        $collections = $this->db->listCollections();
+        $collections = $this->getDb()->listCollections();
         foreach ($collections as $collectionInfo) {
             yield $collectionInfo->getName();
         }
@@ -51,7 +59,7 @@ class RemoteConfStorage {
      * @return \Generator|array[] Document of collection
      */
     public function getCollectionData(string $name) {
-        $collection = $this->db->selectCollection($name);
+        $collection = $this->getDb()->selectCollection($name);
         /** @var BSONDocument $data */
         foreach ($collection->find() as $data) {
             yield $data->getArrayCopy();
@@ -76,7 +84,7 @@ class RemoteConfStorage {
     }
 
     public function drop() {
-        $this->db->drop();
+        $this->getDb()->drop();
     }
 
     /**
@@ -85,7 +93,7 @@ class RemoteConfStorage {
      * @param string $collectionName
      */
     public function flush(string $collectionName) {
-        $collection = $this->db->selectCollection($collectionName);
+        $collection = $this->getDb()->selectCollection($collectionName);
         $collection->deleteMany([
             '_id' => [
                 '$in' => array_column($this->buffer, "_id")
@@ -93,6 +101,31 @@ class RemoteConfStorage {
         ]);
         $collection->insertMany($this->buffer);
         $this->buffer = [];
+    }
+
+    /**
+     * @param string $project
+     * @return RemoteConfStorage
+     */
+    public function setProject(string $project): RemoteConfStorage
+    {
+        $this->project = $project;
+        return $this;
+    }
+
+    /**
+     * @param int $confVersion
+     * @return RemoteConfStorage
+     */
+    public function setConfVersion(int $confVersion): RemoteConfStorage
+    {
+        $this->confVersion = $confVersion;
+        return $this;
+    }
+    
+    private function getDb(): Database {
+        $dbName = "{$this->project}_{$this->confVersion}";
+        return $this->client->{$dbName};
     }
 
 }

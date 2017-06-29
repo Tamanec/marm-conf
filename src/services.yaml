@@ -1,0 +1,29 @@
+parameters:
+  root_dir: !php/const:ROOT_DIR
+  mongo_uri: 'mongodb://%env(MONGO_USER)%:%env(MONGO_PASSWORD)%@%env(MONGO_SERVER)%/admin'
+
+services:
+  filesystem:
+    class: Symfony\Component\Filesystem\Filesystem
+
+  mongo.client:
+    class: MongoDB\Client
+    arguments: ['%mongo_uri%']
+
+  conf.storage.local:
+    class: mc\models\LocalConfStorage
+    arguments: ['@filesystem']
+    calls:
+      - [setPath, ['%root_dir%/projects']]
+
+  conf.storage.remote:
+    class: mc\models\RemoteConfStorage
+    arguments: ['@mongo.client']
+
+  command.conf.pull:
+    class: mc\commands\PullConfCommand
+    arguments: ['@conf.storage.local', '@conf.storage.remote']
+
+  command.conf.push:
+      class: mc\commands\PushConfCommand
+      arguments: ['@conf.storage.local', '@conf.storage.remote']
