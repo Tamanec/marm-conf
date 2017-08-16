@@ -10,11 +10,15 @@ services:
     class: MongoDB\Client
     arguments: ['%mongo_uri%']
 
+  conf.storage.fileNameRules:
+    class: mc\models\FileNameRules
+
   conf.storage.local:
     class: mc\models\LocalConfStorage
     arguments: ['@filesystem']
     calls:
       - [setPath, ['%root_dir%/projects']]
+      - [setFileNameRules, ['@conf.storage.fileNameRules']]
 
   conf.storage.remote:
     class: mc\models\RemoteConfStorage

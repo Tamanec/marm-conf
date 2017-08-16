@@ -62,7 +62,10 @@ class RemoteConfStorage {
         $collection = $this->getDb()->selectCollection($name);
         /** @var BSONDocument $data */
         foreach ($collection->find() as $data) {
-            yield $data->getArrayCopy();
+            $conf = $data->getArrayCopy();
+            $conf['id'] = (string) $conf['_id'];
+            unset($conf['_id']);
+            yield $conf;
         }
     }
 
@@ -73,8 +76,9 @@ class RemoteConfStorage {
      * @param string $collectionName
      */
     public function save(array $data, string $collectionName) {
-        if (isset($data['_id'])) {
-            $data['_id'] = new ObjectID($data['_id']);
+        if (isset($data['id'])) {
+            $data['_id'] = new ObjectID($data['id']);
+            unset($data['id']);
         }
 
         $this->buffer[] = $data;

@@ -25,12 +25,17 @@ class LocalConfStorage {
     private $fs;
 
     /**
+     * @var FileNameRules
+     */
+    private $fileNameRules;
+
+    /**
      * @var string
      */
     private $project;
 
     /**
-     * ConfigurationStorage constructor.
+     * LocalConfStorage constructor.
      * @param Filesystem $fs
      */
     public function __construct(Filesystem $fs) {
@@ -55,11 +60,10 @@ class LocalConfStorage {
      * @param string $collectionName
      */
     public function save(array $data, string $collectionName) {
-        $data['_id'] = (string) $data['_id'];
         $fullName = $this->projectPath . DIRECTORY_SEPARATOR
             . $collectionName . DIRECTORY_SEPARATOR
-            . $this->getFileName($data, $collectionName);
-        file_put_contents($fullName, json_encode($data));
+            . $this->fileNameRules->getFileName($collectionName, $data);
+        file_put_contents($fullName, json_encode($data, JSON_PRETTY_PRINT));
     }
 
     /**
@@ -94,49 +98,6 @@ class LocalConfStorage {
     }
 
     /**
-     * @param array $data
-     * @param string $collectionName
-     * @return string
-     */
-    protected function getFileName(array $data, string $collectionName): string {
-        switch ($collectionName) {
-            case 'views':
-                $fileName = $data['name'];
-                break;
-
-            case 'templates':
-                $fileName = "{$data['class']}-{$data['name']}";
-                break;
-
-            case 'scripts':
-                $fileName = "{$data['type']}-{$data['name']}";
-                break;
-
-            case 'styles':
-                $fileName = "{$data['type']}-{$data['name']}-{$data['template']}-{$data['_id']}";
-                break;
-
-            case 'rules':
-                if ($data['class'] === 'view') {
-                    $fileName = "{$data['class']}-{$data['viewName']}-{$data['_id']}";
-                } elseif ($data['class'] === 'doc') {
-                    $fileName = "{$data['class']}-{$data['type']}-{$data['_id']}";
-                } else {
-                    $models = implode(',', (array)$data['models']);
-                    $methods = implode(',', (array)$data['methods']);
-                    $fileName = "{$data['class']}-{$models}-{$methods}-{$data['_id']}";
-                }
-
-                break;
-
-            default:
-                $fileName = $data['_id'];
-        }
-
-        return $fileName;
-    }
-
-    /**
      * @param string $path
      * @return LocalConfStorage
      */
@@ -153,6 +114,15 @@ class LocalConfStorage {
     public function setProject(string $project): LocalConfStorage
     {
         $this->project = $project;
+        return $this;
+    }
+
+    /**
+     * @param FileNameRules $fileNameRules
+     * @return LocalConfStorage
+     */
+    public function setFileNameRules(FileNameRules $fileNameRules): LocalConfStorage {
+        $this->fileNameRules = $fileNameRules;
         return $this;
     }
 
