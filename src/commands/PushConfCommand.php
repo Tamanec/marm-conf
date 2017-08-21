@@ -3,8 +3,7 @@
 namespace mc\commands;
 
 
-use mc\models\LocalConfStorage;
-use mc\models\RemoteConfStorage;
+use mc\services\PushConfService;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -13,23 +12,16 @@ use Symfony\Component\Console\Output\OutputInterface;
 class PushConfCommand extends Command {
 
     /**
-     * @var LocalConfStorage
+     * @var PushConfService
      */
-    private $localStorage;
-
-    /**
-     * @var RemoteConfStorage
-     */
-    private $remoteStorage;
+    private $pushConfService;
 
     /**
      * PullConfCommand constructor.
-     * @param LocalConfStorage $localStorage
-     * @param RemoteConfStorage $remoteStorage
+     * @param PushConfService $pushConfService
      */
-    public function __construct(LocalConfStorage $localStorage, RemoteConfStorage $remoteStorage) {
-        $this->localStorage = $localStorage;
-        $this->remoteStorage = $remoteStorage;
+    public function __construct(PushConfService $pushConfService) {
+        $this->pushConfService = $pushConfService;
         parent::__construct();
     }
 
@@ -55,28 +47,9 @@ class PushConfCommand extends Command {
         $version = $input->getArgument("version");
         $delete = filter_var($input->getArgument("delete"), FILTER_VALIDATE_BOOLEAN);
 
-        if (!preg_match('/v([\d]+)d([\d]+)/', $version, $matches)) {
-            throw new \Exception("Incorrect format of version: {$version}");
-        }
+        $this->pushConfService->pushConf($project, $version, $delete);
 
-        $confVersion = $matches[2];
-        $this->remoteStorage
-            ->setProject($project)
-            ->setConfVersion($confVersion)
-        ;
-        if ($delete) {
-            $this->remoteStorage->drop();
-        }
-
-        $this->localStorage->setProject($project);
-        foreach ($this->localStorage->getCollections() as $collectionName) {
-            $iterator = $this->localStorage->getCollectionData($collectionName);
-            foreach ($iterator as $data) {
-                $this->remoteStorage->save($data, $collectionName);
-            }
-
-            $this->remoteStorage->flush($collectionName);
-        }
+        $output->writeln("Отправка конфигурации завершена");
     }
 
 }

@@ -1,10 +1,24 @@
 parameters:
   root_dir: !php/const:ROOT_DIR
   mongo_uri: 'mongodb://%env(MONGO_USER)%:%env(MONGO_PASSWORD)%@%env(MONGO_SERVER)%/admin'
+  log_path: '%root_dir%/logs/app.log'
 
 services:
   filesystem:
     class: Symfony\Component\Filesystem\Filesystem
+
+  logger.handler:
+    class: Monolog\Handler\StreamHandler
+    arguments: ['%log_path%']
+
+  logger:
+    class: Monolog\Logger
+    arguments: ['app']
+    calls:
+      - ['pushHandler', ['@logger.handler']]
+
+  archiveFactory:
+    class: mc\models\ArchiveFactory
 
   mongo.client:
     class: MongoDB\Client
@@ -19,15 +33,28 @@ services:
     calls:
       - [setPath, ['%root_dir%/projects']]
       - [setFileNameRules, ['@conf.storage.fileNameRules']]
+      - [setArchiveFactory, ['@archiveFactory']]
 
   conf.storage.remote:
     class: mc\models\RemoteConfStorage
     arguments: ['@mongo.client']
 
+  service.conf.archive:
+    class: mc\services\ArchiveService
+    arguments: ['@conf.storage.local']
+
+  service.conf.pull:
+    class: mc\services\PullConfService
+    arguments: ['@conf.storage.local', '@conf.storage.remote']
+
+  service.conf.push:
+    class: mc\services\PushConfService
+    arguments: ['@conf.storage.local', '@conf.storage.remote']
+
   command.conf.pull:
     class: mc\commands\PullConfCommand
-    arguments: ['@conf.storage.local', '@conf.storage.remote']
+    arguments: ['@service.conf.pull', '@service.conf.archive']
 
   command.conf.push:
       class: mc\commands\PushConfCommand
-      arguments: ['@conf.storage.local', '@conf.storage.remote']
+      arguments: ['@service.conf.push']

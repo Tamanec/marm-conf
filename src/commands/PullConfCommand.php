@@ -3,8 +3,8 @@
 namespace mc\commands;
 
 
-use mc\models\LocalConfStorage;
-use mc\models\RemoteConfStorage;
+use mc\services\ArchiveService;
+use mc\services\PullConfService;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -12,31 +12,23 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class PullConfCommand extends Command {
 
-    private $ignoreCollections = [
-        "system.indexes",
-        "system.profile",
-        "sysinfo",
-        "files"
-    ];
+    /**
+     * @var PullConfService
+     */
+    private $pullConfService;
 
     /**
-     * @var LocalConfStorage
+     * @var ArchiveService
      */
-    private $localStorage;
-
-    /**
-     * @var RemoteConfStorage
-     */
-    private $remoteStorage;
+    private $archiveService;
 
     /**
      * PullConfCommand constructor.
-     * @param LocalConfStorage $localStorage
-     * @param RemoteConfStorage $remoteStorage
+     * @param PullConfService $pullConfService
      */
-    public function __construct(LocalConfStorage $localStorage, RemoteConfStorage $remoteStorage) {
-        $this->localStorage = $localStorage;
-        $this->remoteStorage = $remoteStorage;
+    public function __construct(PullConfService $pullConfService, ArchiveService $archiveService) {
+        $this->pullConfService = $pullConfService;
+        $this->archiveService = $archiveService;
         parent::__construct();
     }
 
@@ -60,28 +52,12 @@ class PullConfCommand extends Command {
         $project = $input->getArgument("project");
         $version = $input->getArgument("version");
 
-        if (!preg_match('/v([\d]+)d([\d]+)/', $version, $matches)) {
-            throw new \Exception("Incorrect format of version: {$version}");
-        }
+        $stat = $this->pullConfService->pullConf($project, $version);
+        $fullPathToArchive = $this->archiveService->compressConf($project, $version);
 
-        $this->localStorage->setProject($project);
-        $this->localStorage->initProject();
-
-        $confVersion = $matches[2];
-        $this->remoteStorage
-            ->setProject($project)
-            ->setConfVersion($confVersion)
-        ;
-        foreach ($this->remoteStorage->getCollections() as $collectionName) {
-            if (in_array($collectionName, $this->ignoreCollections)) {
-                continue;
-            }
-
-            $this->localStorage->initCollection($collectionName);
-            foreach ($this->remoteStorage->getCollectionData($collectionName) as $data) {
-                $this->localStorage->save($data, $collectionName);
-            }
-        }
+        $output->writeln("Получение конфигурации завершено");
+        $output->writeln(var_export($stat, true));
+        $output->writeln($fullPathToArchive);
     }
 
 }

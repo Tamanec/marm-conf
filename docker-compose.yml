@@ -1,14 +1,23 @@
-version: '3.0'
+version: '3.2'
 
 services:
   php:
-    build: ./docker/php-alpine
+    build: ./docker/php-fpm-alpine
     image: mc_php
     container_name: mc_php
     volumes:
       - ./src:/var/www/mc
     environment:
-      - XDEBUG_CONFIG=idekey=PHPSTORM remote_enable=on remote_host=172.29.130.197
+      - XDEBUG_CONFIG=idekey=PHPSTORM remote_enable=on remote_port=9000 remote_host=172.29.130.197
       - PHP_IDE_CONFIG=serverName=mc
-    #command: sh -c "[ -f /var/www/mc/composer.lock ] || composer install --working-dir=/var/www/mc && php /var/www/mc/pullConf.php"
-    command: tail -f /var/log/php_error.log
+
+  nginx:
+    build: ./docker/nginx
+    image: mc_nginx
+    container_name: mc_nginx
+    volumes:
+      - ./src:/var/www/mc
+    ports:
+      - "8050:80"
+    depends_on:
+      - php

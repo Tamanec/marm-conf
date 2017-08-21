@@ -7,6 +7,7 @@ use MongoDB\BSON\ObjectID;
 use MongoDB\Client;
 use MongoDB\Database;
 use MongoDB\Model\BSONDocument;
+use MongoDB\Model\DatabaseInfo;
 
 /**
  * Class Configuration
@@ -126,10 +127,29 @@ class RemoteConfStorage {
         $this->confVersion = $confVersion;
         return $this;
     }
+
+    /**
+     * @return bool
+     */
+    public function dbExists(): bool {
+        $dbList = iterator_to_array($this->client->listDatabases());
+        $dbNames = array_map(function ($dbInfo) {
+            /** @var DatabaseInfo $dbInfo */
+            return $dbInfo->getName();
+        }, $dbList);
+        return in_array($this->getDbName(), $dbNames);
+    }
     
     private function getDb(): Database {
-        $dbName = "{$this->project}_{$this->confVersion}";
+        $dbName = $this->getDbName();
         return $this->client->{$dbName};
+    }
+
+    /**
+     * @return string
+     */
+    private function getDbName(): string {
+        return "{$this->project}_{$this->confVersion}";
     }
 
 }

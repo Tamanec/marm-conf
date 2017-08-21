@@ -3,11 +3,12 @@
 namespace mc\models;
 
 
+use Symfony\Component\Config\Definition\Exception\Exception;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 
-class LocalConfStorage {
+class LocalConfStorage implements LocalStorage {
 
     /**
      * @var string Folder with projects
@@ -30,6 +31,11 @@ class LocalConfStorage {
     private $fileNameRules;
 
     /**
+     * @var ArchiveFactory
+     */
+    private $archiveFactory;
+
+    /**
      * @var string
      */
     private $project;
@@ -46,6 +52,7 @@ class LocalConfStorage {
         $this->projectPath = $this->path . DIRECTORY_SEPARATOR . $this->project;
         $this->fs->remove($this->projectPath);
         $this->fs->mkdir($this->projectPath);
+        $this->fs->chmod($this->projectPath, 0777);
     }
 
     /**
@@ -53,6 +60,7 @@ class LocalConfStorage {
      */
     public function initCollection(string $name) {
         $this->fs->mkdir($this->projectPath . DIRECTORY_SEPARATOR . $name);
+        $this->fs->chmod($this->projectPath . DIRECTORY_SEPARATOR . $name, 0777);
     }
 
     /**
@@ -64,6 +72,7 @@ class LocalConfStorage {
             . $collectionName . DIRECTORY_SEPARATOR
             . $this->fileNameRules->getFileName($collectionName, $data);
         file_put_contents($fullName, json_encode($data, JSON_PRETTY_PRINT));
+        $this->fs->chmod($fullName, 0777);
     }
 
     /**
@@ -98,6 +107,46 @@ class LocalConfStorage {
     }
 
     /**
+     * @param string $archiveName
+     * @param string $project
+     * @return string
+     */
+    public function compress($archiveName, $project) {
+        $fullArchiveName = $this->path . DIRECTORY_SEPARATOR . $archiveName;
+        if (file_exists($fullArchiveName)) {
+            $this->fs->remove($fullArchiveName);
+        }
+
+        $tar = $this->archiveFactory->createArchive($fullArchiveName);
+        if (!$tar->createModify([$this->path . DIRECTORY_SEPARATOR . $project], '', $this->path)) {
+            throw new Exception($tar->error_object->getMessage());
+        }
+
+        return $fullArchiveName;
+    }
+
+    /**
+     * @param string $archiveName
+     * @param string $project
+     */
+    public function uncompress($archiveName, $project) {
+        $fullArchiveName = $this->path . DIRECTORY_SEPARATOR . $archiveName;
+        if (!file_exists($fullArchiveName)) {
+            throw new Exception("Архив не найден: {$fullArchiveName}");
+        }
+
+        $projectPath = $this->path . DIRECTORY_SEPARATOR . $project;
+        if (file_exists($projectPath)) {
+            $this->fs->remove($projectPath);
+        }
+
+        $tar = $this->archiveFactory->createArchive($fullArchiveName);
+        if (!$tar->extract($this->path)) {
+            throw new Exception($tar->error_object->getMessage());
+        }
+    }
+
+    /**
      * @param string $path
      * @return LocalConfStorage
      */
@@ -105,6 +154,13 @@ class LocalConfStorage {
     {
         $this->path = $path;
         return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPath(): string {
+        return $this->path;
     }
 
     /**
@@ -123,6 +179,15 @@ class LocalConfStorage {
      */
     public function setFileNameRules(FileNameRules $fileNameRules): LocalConfStorage {
         $this->fileNameRules = $fileNameRules;
+        return $this;
+    }
+
+    /**
+     * @param ArchiveFactory $archiveFactory
+     * @return LocalConfStorage
+     */
+    public function setArchiveFactory(ArchiveFactory $archiveFactory): LocalConfStorage {
+        $this->archiveFactory = $archiveFactory;
         return $this;
     }
 
