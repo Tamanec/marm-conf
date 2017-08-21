@@ -12,15 +12,15 @@ use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Filesystem\LockHandler;
 
-require_once __DIR__ . "/vendor/autoload.php";
+define('ROOT_DIR', realpath(__DIR__ . '/..'));
 
-define('ROOT_DIR', __DIR__);
+require_once ROOT_DIR . "/src/vendor/autoload.php";
 
-$dotenv = new Dotenv(__DIR__);
+$dotenv = new Dotenv(ROOT_DIR . '/config');
 $dotenv->load();
 
 $container = new ContainerBuilder();
-(new YamlFileLoader($container, new FileLocator(ROOT_DIR)))->load('services.yaml');
+(new YamlFileLoader($container, new FileLocator(ROOT_DIR . '/config')))->load('services.yaml');
 $container->compile(true);
 
 $application = new Application();

@@ -6,7 +6,7 @@ services:
     image: mc_php
     container_name: mc_php
     volumes:
-      - ./src:/var/www/mc
+      - .:/var/www/mc
     environment:
       - XDEBUG_CONFIG=idekey=PHPSTORM remote_enable=on remote_port=9000 remote_host=172.29.130.197
       - PHP_IDE_CONFIG=serverName=mc
@@ -16,7 +16,7 @@ services:
     image: mc_nginx
     container_name: mc_nginx
     volumes:
-      - ./src:/var/www/mc
+      - .:/var/www/mc
     ports:
       - "8050:80"
     depends_on:

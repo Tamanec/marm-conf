@@ -1,9 +1,9 @@
 .idea
 
-src/profile
-src/projects/*
-!src/projects/.empty
+var/profile
+var/projects/*
+!var/projects/.empty
 src/vendor
-src/.env
-src/logs/*
-!src/logs/.empty
+config/.env
+var/logs/*
+!var/logs/.empty

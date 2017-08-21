@@ -1,7 +1,8 @@
 parameters:
   root_dir: !php/const:ROOT_DIR
   mongo_uri: 'mongodb://%env(MONGO_USER)%:%env(MONGO_PASSWORD)%@%env(MONGO_SERVER)%/admin'
-  log_path: '%root_dir%/logs/app.log'
+  log_path: '%root_dir%/var/logs/app.log'
+  projects_path: '%root_dir%/var/projects'
 
 services:
   filesystem:
@@ -31,7 +32,7 @@ services:
     class: mc\models\LocalConfStorage
     arguments: ['@filesystem']
     calls:
-      - [setPath, ['%root_dir%/projects']]
+      - [setPath, ['%projects_path%']]
       - [setFileNameRules, ['@conf.storage.fileNameRules']]
       - [setArchiveFactory, ['@archiveFactory']]
 
