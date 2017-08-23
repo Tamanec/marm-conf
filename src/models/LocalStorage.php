@@ -5,17 +5,17 @@ namespace mc\models;
 
 interface LocalStorage {
 
-    /**
-     * @param string $archiveName Название файла архива
-     * @param string $project
-     * @return string Полный путь до архива
-     */
-    public function compress($archiveName, $project);
 
     /**
-     * @param string $archiveName Название файла архива
-     * @param string $project
+     * @return string Путь до папки с проектами
      */
-    public function uncompress($archiveName, $project);
+    public function getPath();
+
+    /**
+     * Удаляет проект
+     * @param string $project
+     * @throws \Exception
+     */
+    public function remove($project);
 
 }

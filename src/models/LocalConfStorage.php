@@ -31,11 +31,6 @@ class LocalConfStorage implements LocalStorage {
     private $fileNameRules;
 
     /**
-     * @var ArchiveFactory
-     */
-    private $archiveFactory;
-
-    /**
      * @var string
      */
     private $project;
@@ -107,43 +102,10 @@ class LocalConfStorage implements LocalStorage {
     }
 
     /**
-     * @param string $archiveName
-     * @param string $project
-     * @return string
-     */
-    public function compress($archiveName, $project) {
-        $fullArchiveName = $this->path . DIRECTORY_SEPARATOR . $archiveName;
-        if (file_exists($fullArchiveName)) {
-            $this->fs->remove($fullArchiveName);
-        }
-
-        $tar = $this->archiveFactory->createArchive($fullArchiveName);
-        if (!$tar->createModify([$this->path . DIRECTORY_SEPARATOR . $project], '', $this->path)) {
-            throw new Exception($tar->error_object->getMessage());
-        }
-
-        return $fullArchiveName;
-    }
-
-    /**
-     * @param string $archiveName
      * @param string $project
      */
-    public function uncompress($archiveName, $project) {
-        $fullArchiveName = $this->path . DIRECTORY_SEPARATOR . $archiveName;
-        if (!file_exists($fullArchiveName)) {
-            throw new Exception("Архив не найден: {$fullArchiveName}");
-        }
-
-        $projectPath = $this->path . DIRECTORY_SEPARATOR . $project;
-        if (file_exists($projectPath)) {
-            $this->fs->remove($projectPath);
-        }
-
-        $tar = $this->archiveFactory->createArchive($fullArchiveName);
-        if (!$tar->extract($this->path)) {
-            throw new Exception($tar->error_object->getMessage());
-        }
+    public function remove($project) {
+        $this->fs->remove($this->path . DIRECTORY_SEPARATOR . $project);
     }
 
     /**
@@ -179,15 +141,6 @@ class LocalConfStorage implements LocalStorage {
      */
     public function setFileNameRules(FileNameRules $fileNameRules): LocalConfStorage {
         $this->fileNameRules = $fileNameRules;
-        return $this;
-    }
-
-    /**
-     * @param ArchiveFactory $archiveFactory
-     * @return LocalConfStorage
-     */
-    public function setArchiveFactory(ArchiveFactory $archiveFactory): LocalConfStorage {
-        $this->archiveFactory = $archiveFactory;
         return $this;
     }
 

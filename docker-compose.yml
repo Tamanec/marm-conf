@@ -3,21 +3,32 @@ version: '3.2'
 services:
   php:
     build: ./docker/php-fpm-alpine
-    image: mc_php
-    container_name: mc_php
+    image: marm-app-sync
+    container_name: marm-app-sync
     volumes:
       - .:/var/www/mc
     environment:
-      - XDEBUG_CONFIG=idekey=PHPSTORM remote_enable=on remote_port=9000 remote_host=172.29.130.197
-      - PHP_IDE_CONFIG=serverName=mc
+      - PHP_IDE_CONFIG=serverName=localhost
+    networks:
+      - default
+      - marm-db
 
   nginx:
     build: ./docker/nginx
-    image: mc_nginx
-    container_name: mc_nginx
+    image: marm-server-sync
+    container_name: marm-server-sync
     volumes:
       - .:/var/www/mc
     ports:
       - "8050:80"
     depends_on:
       - php
+    networks:
+      - default
+      - marm-cms
+
+networks:
+  marm-db:
+    external: true
+  marm-cms:
+    external: true

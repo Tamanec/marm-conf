@@ -34,7 +34,6 @@ services:
     calls:
       - [setPath, ['%projects_path%']]
       - [setFileNameRules, ['@conf.storage.fileNameRules']]
-      - [setArchiveFactory, ['@archiveFactory']]
 
   conf.storage.remote:
     class: mc\models\RemoteConfStorage
@@ -42,7 +41,7 @@ services:
 
   service.conf.archive:
     class: mc\services\ArchiveService
-    arguments: ['@conf.storage.local']
+    arguments: ['@filesystem', '@archiveFactory', '@conf.storage.local']
 
   service.conf.pull:
     class: mc\services\PullConfService

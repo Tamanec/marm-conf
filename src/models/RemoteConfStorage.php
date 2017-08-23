@@ -98,6 +98,10 @@ class RemoteConfStorage {
      * @param string $collectionName
      */
     public function flush(string $collectionName) {
+        if (empty($this->buffer)) {
+            return;
+        }
+
         $collection = $this->getDb()->selectCollection($collectionName);
         $collection->deleteMany([
             '_id' => [
